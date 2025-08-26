@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>LIFF Chat</title>
+  <style>
+    body { margin:0; font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans TC"; }
+    #chat-container { height:100vh; }
+  </style>
+</head>
+<body>
+  <div id="chat-container"></div>
+
+  <!-- LIFF SDK -->
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <!-- Flowise Embed SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/flowise-embed/dist/web.js"></script>
+  <script>
+    // TODO: 替換成你在 LINE Developers Console 建立的 LIFF ID
+    const LIFF_ID = "YOUR_LIFF_ID";
+
+    // TODO: 替換成你的 Flowise 部署資訊
+    const CHATFLOW_ID = "YOUR_CHATFLOW_ID";
+    const FLOWISE_API = "https://YOUR-FLOWISE-HOST";
+
+    (async () => {
+      await liff.init({ liffId: LIFF_ID });
+      if (!liff.isLoggedIn()) {
+        liff.login();
+        return;
+      }
+      const profile = await liff.getProfile();
+      const sessionId = `line_${profile.userId}`;
+
+      // 開啟 Flowise Chat 小工具
+      window.FlowiseChat.open({
+        chatflowid: CHATFLOW_ID,
+        apiHost: FLOWISE_API,
+        chatflowConfig: { sessionId },
+        theme: { chatWindow: { title: "陪伴機器人" } }
+      });
+    })();
+  </script>
+</body>
+</html>
