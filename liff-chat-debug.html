@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>LIFF Chat (Debug)</title>
+  <style>
+    body { margin:0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans TC"; background:#f8fafc; }
+    #topbar { padding:10px 12px; background:#0ea5e9; color:#fff; font-weight:600; }
+    #chat-container { height: calc(100vh - 120px); }
+    #log { height:100px; overflow:auto; padding:8px 12px; font-size:12px; background:#e2e8f0; border-top:1px solid #cbd5e1; }
+  </style>
+</head>
+<body>
+  <div id="topbar">LIFF Chat (Debug 版) — 錯誤訊息會顯示在下方</div>
+  <div id="chat-container"></div>
+  <div id="log"></div>
+
+  <!-- LIFF SDK -->
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <!-- Flowise Embed SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/flowise-embed/dist/web.js"></script>
+
+  <script>
+    // ======= 請換成你的實際值 =======
+    const LIFF_ID = "YOUR_LIFF_ID";
+    const CHATFLOW_ID = "YOUR_CHATFLOW_ID";
+    const FLOWISE_API = "https://YOUR-FLOWISE-HOST";
+    // =================================
+
+    const $log = document.getElementById("log");
+    function log(...args){
+      const line = document.createElement("div");
+      line.textContent = args.map(x => typeof x === "object" ? JSON.stringify(x) : String(x)).join(" ");
+      $log.appendChild(line);
+      $log.scrollTop = $log.scrollHeight;
+    }
+    window.onerror = (m, s, l, c, e)=>{ log("window.onerror:", m, "@", s, l, c); };
+
+    function openFlowise(sessionId){
+      try {
+        log("openFlowise sessionId=", sessionId);
+        window.FlowiseChat.open({
+          chatflowid: CHATFLOW_ID,
+          apiHost: FLOWISE_API,
+          chatflowConfig: sessionId ? { sessionId } : {},
+          theme: { chatWindow: { title: "陪伴機器人" } }
+        });
+      } catch (e) {
+        log("FlowiseChat.open error:", e && (e.stack || e.message || e));
+      }
+    }
+
+    (async () => {
+      const qs = new URLSearchParams(location.search);
+      if (qs.get("debug") === "1") {
+        log("debug=1 → 略過 LIFF，直接載入 Flowise");
+        openFlowise("debug_user");
+        return;
+      }
+
+      try {
+        log("init LIFF...");
+        await liff.init({ liffId: LIFF_ID });
+
+        if (!liff.isLoggedIn()) {
+          log("not logged in → liff.login()");
+          liff.login();
+          return;
+        }
+        log("getProfile...");
+        const profile = await liff.getProfile();
+        log("profile", { displayName: profile.displayName, userId: profile.userId });
+
+        const sessionId = `line_${profile.userId}`;
+        openFlowise(sessionId);
+      } catch (err) {
+        log("LIFF error:", err && (err.stack || err.message || err));
+        openFlowise();
+      }
+    })();
+  </script>
+</body>
+</html>
