@@ -14,32 +14,62 @@
 
   <!-- LIFF SDK -->
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
-  <!-- Flowise Embed SDK -->
-  <script src="https://cdn.jsdelivr.net/npm/flowise-embed/dist/web.js"></script>
-  <script>
-    // TODO: 替換成你在 LINE Developers Console 建立的 LIFF ID
-    const LIFF_ID = "2007994605-MQ7wrXWZ";
+   <!-- 使用 ES module 版的 Flowise Embed -->
+  <script type="module">
+    import Chatbot from "https://cdn.jsdelivr.net/npm/flowise-embed/dist/web.js";
 
-    // TODO: 替換成你的 Flowise 部署資訊
+    // ======= 請換成你的實際值 =======
+    const LIFF_ID = "2007994605-MQ7wrXWZ";
     const CHATFLOW_ID = "5e9d71c8-1905-4583-845b-3dfe3b5f4106";
     const FLOWISE_API = "https://cloud.flowiseai.com";
+    // =================================
+
+const $log = document.getElementById("log");
+    const log = (...args) => {
+      const line = document.createElement("div");
+      line.textContent = args.map(x => typeof x === "object" ? JSON.stringify(x) : String(x)).join(" ");
+      $log.appendChild(line);
+      $log.scrollTop = $log.scrollHeight;
+    };
+    window.onerror = (m, s, l, c) => log("window.onerror:", m, "@", s, l, c);
+    
+    function openFlowise(sessionId){
+      try {
+        log("openFlowise with sessionId =", sessionId ?? "(none)");
+        Chatbot.init({
+          chatflowid: CHATFLOW_ID,
+          apiHost: FLOWISE_API,
+          chatflowConfig: sessionId ? { sessionId } : {},
+          theme: { chatWindow: { title: "陪伴機器人" } }
+        });
+      } catch (e) {
+        log("Chatbot.init error:", e?.message || e);
+      }
+    }
 
     (async () => {
-      await liff.init({ liffId: LIFF_ID });
-      if (!liff.isLoggedIn()) {
-        liff.login();
+      const qs = new URLSearchParams(location.search);
+      if (qs.get("debug") === "1") {
+        log("debug=1 → 略過 LIFF，直接載入 Flowise (ESM)");
+        openFlowise("debug_user");
         return;
       }
-      const profile = await liff.getProfile();
-      const sessionId = `line_${profile.userId}`;
 
-      // 開啟 Flowise Chat 小工具
-      window.FlowiseChat.open({
-        chatflowid: CHATFLOW_ID,
-        apiHost: FLOWISE_API,
-        chatflowConfig: { sessionId },
-        theme: { chatWindow: { title: "陪伴機器人" } }
-      });
+      try {
+        log("init LIFF...");
+        await liff.init({ liffId: LIFF_ID });
+        if (!liff.isLoggedIn()) {
+          log("not logged in → liff.login()");
+          liff.login(); return;
+        }
+        log("getProfile...");
+        const profile = await liff.getProfile();
+        log("profile", { displayName: profile.displayName, userId: profile.userId });
+        openFlowise(`line_${profile.userId}`);
+      } catch (err) {
+        log("LIFF error, fallback to open without sessionId:", err?.message || err);
+        openFlowise();
+      }
     })();
   </script>
 </body>
