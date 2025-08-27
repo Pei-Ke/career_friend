@@ -10,11 +10,13 @@
   </style>
 </head>
 <body>
-  <div id="chat-container"></div>
+   <div id="topbar">LIFF Chat (Debug 版 · ES Module) — 錯誤會顯示在下方</div>
+  <div id="log"></div>
 
   <!-- LIFF SDK -->
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
-   <!-- 使用 ES module 版的 Flowise Embed -->
+
+  <!-- 使用 ES module 版的 Flowise Embed -->
   <script type="module">
     import Chatbot from "https://cdn.jsdelivr.net/npm/flowise-embed/dist/web.js";
 
@@ -24,7 +26,7 @@
     const FLOWISE_API = "https://cloud.flowiseai.com";
     // =================================
 
-const $log = document.getElementById("log");
+    const $log = document.getElementById("log");
     const log = (...args) => {
       const line = document.createElement("div");
       line.textContent = args.map(x => typeof x === "object" ? JSON.stringify(x) : String(x)).join(" ");
@@ -32,7 +34,7 @@ const $log = document.getElementById("log");
       $log.scrollTop = $log.scrollHeight;
     };
     window.onerror = (m, s, l, c) => log("window.onerror:", m, "@", s, l, c);
-    
+
     function openFlowise(sessionId){
       try {
         log("openFlowise with sessionId =", sessionId ?? "(none)");
