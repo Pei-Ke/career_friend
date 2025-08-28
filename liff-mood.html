@@ -25,6 +25,7 @@
     .primary:disabled { opacity:.4; }
     header { padding:16px 0 8px; }
     .title { font-size:14px; color:var(--muted); }
+    #log { font-size:12px; color:#6b7280; margin-top:8px; }
   </style>
 </head>
 <body>
@@ -72,23 +73,21 @@
 
     <div class="footer">
       <button class="primary" id="go" disabled>開始聊天</button>
+      <div id="log"></div>
     </div>
   </div>
 
-  <!-- LIFF SDK -->
-  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   <script>
-    // 將此頁也放在同一個 LIFF App 下即可
-    const LIFF_ID = "2007994605-MQ7wrXWZ"; // ← 改成你的 LIFF ID
-    const CHAT_PAGE = "liff-chat.html"; // 第二頁（你已經部署過的聊天頁）
-
+    const CHAT_PAGE = "liff-chat.html"; // 第二頁（同資料夾）
     const moodGrid = document.getElementById("mood-grid");
     const botButtons = [document.getElementById("bot-baobao"), document.getElementById("bot-penny")];
     const goBtn = document.getElementById("go");
+    const $log = document.getElementById("log");
 
     let mood = null;
     let bot = null;
 
+    function log(t){ $log.textContent = t; }
     function selectSingleInGrid(grid, value){
       [...grid.querySelectorAll(".btn")].forEach(b => {
         const sel = b.dataset.value === value;
@@ -120,24 +119,15 @@
       updateGo();
     }));
 
-    goBtn.addEventListener("click", async () => {
-      try {
-        // 可把選擇先暫存在 sessionStorage，第二頁也能讀到（同網域）
-        sessionStorage.setItem("mood", mood);
-        sessionStorage.setItem("bot", bot);
+    goBtn.addEventListener("click", () => {
+      // 存到 sessionStorage（第二頁同網域可讀）
+      sessionStorage.setItem("mood", mood);
+      sessionStorage.setItem("bot", bot);
 
-        // 建立帶參數的 LIFF 永久連結（確保 LINE WebView 回跳也保留狀態）
-        await liff.init({ liffId: LIFF_ID });
-        const url = new URL(window.location.href);
-        url.pathname = url.pathname.replace(/[^\/]+$/, CHAT_PAGE);
-        url.search = `?mood=${encodeURIComponent(mood)}&bot=${encodeURIComponent(bot)}`;
-        const link = liff.permanentLink.createUrl({ url: url.toString() });
-        liff.openWindow({ url: link, external: false });
-      } catch (e) {
-        // 退路：一般跳轉
-        const to = `${CHAT_PAGE}?mood=${encodeURIComponent(mood)}&bot=${encodeURIComponent(bot)}`;
-        location.href = to;
-      }
+      // 直接用相對路徑跳轉（避免 LIFF permanentLink 造成阻礙）
+      const to = `${CHAT_PAGE}?mood=${encodeURIComponent(mood)}&bot=${encodeURIComponent(bot)}`;
+      log("前往：" + to);
+      location.href = to;
     });
   </script>
 </body>
