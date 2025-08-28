@@ -3,32 +3,39 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>LIFF Chat (Debug, ES Module)</title>
+  <title>LIFF Chat</title>
   <style>
-    body { margin:0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans TC"; background:#f8fafc; }
-    #topbar { padding:10px 12px; background:#0ea5e9; color:#fff; font-weight:600; }
-    #log { height:120px; overflow:auto; padding:8px 12px; font-size:12px; background:#e2e8f0; border-top:1px solid #cbd5e1; }
+    :root { --bg:#f7f7f8; --card:#fff; --border:#e5e7eb; --text:#111827; --muted:#6b7280; }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans TC"; background:var(--bg); color:var(--text); }
+    #notice { max-width:720px; margin: 20px auto; background:var(--card); border:1px solid var(--border); border-radius:16px; padding:16px; display:none; }
+    #log { position: fixed; left:0; right:0; bottom:0; background:#e2e8f0; border-top:1px solid #cbd5e1; font-size:12px; padding:8px 12px; max-height:140px; overflow:auto; display:none; }
   </style>
 </head>
 <body>
-  <div id="topbar">LIFF Chat (Debug 版 · ES Module) — 錯誤會顯示在下方</div>
+  <div id="notice"></div>
   <div id="log"></div>
 
   <!-- LIFF SDK -->
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 
-  <!-- 使用 ES module 版的 Flowise Embed -->
+  <!-- Flowise Embed（ES Module 版） -->
   <script type="module">
     import Chatbot from "https://cdn.jsdelivr.net/npm/flowise-embed/dist/web.js";
 
-    // ======= 請換成你的實際值 =======
-    const LIFF_ID = "2007994605-MQ7wrXWZ";
+    // ======= 需替換你的 LIFF ID；Flowise 參數已可用 =======
+    const LIFF_ID = "YOUR_LIFF_ID"; // ← 換成你的 LIFF ID
     const CHATFLOW_ID = "5e9d71c8-1905-4583-845b-3dfe3b5f4106";
     const FLOWISE_API = "https://cloud.flowiseai.com";
-    // =================================
+    // =====================================================
 
+    // debug 日誌（網址加 ?debug=1 顯示）
+    const qs = new URLSearchParams(location.search);
+    const showLog = qs.get("debug") === "1";
     const $log = document.getElementById("log");
     const log = (...args) => {
+      if (!showLog) return;
+      $log.style.display = "block";
       const line = document.createElement("div");
       line.textContent = args.map(x => typeof x === "object" ? JSON.stringify(x) : String(x)).join(" ");
       $log.appendChild(line);
@@ -36,42 +43,64 @@
     };
     window.onerror = (m, s, l, c) => log("window.onerror:", m, "@", s, l, c);
 
-    function openFlowise(sessionId){
-      try {
-        log("openFlowise with sessionId =", sessionId ?? "(none)");
-        Chatbot.init({
-          chatflowid: CHATFLOW_ID,
-          apiHost: FLOWISE_API,
-          chatflowConfig: sessionId ? { sessionId } : {},
-          theme: { chatWindow: { title: "陪伴機器人" } }
-        });
-      } catch (e) {
-        log("Chatbot.init error:", e?.message || e);
-      }
+    // 讀取第一頁傳來的狀態（優先 query，其次 sessionStorage）
+    const mood = qs.get("mood") || sessionStorage.getItem("mood") || "🙂";
+    const bot = (qs.get("bot") || sessionStorage.getItem("bot") || "").toLowerCase();
+
+    // 若選擇的不是寶包，先顯示提示
+    const $notice = document.getElementById("notice");
+    if (bot && bot !== "baobao") {
+      $notice.style.display = "block";
+      $notice.innerHTML = `
+        <h3 style="margin:0 0 8px;">你選的是「裴妮」</h3>
+        <p style="margin:0 0 8px; color:#374151">目前只有「寶包」支援這個聊天頁。你可以：</p>
+        <ul style="margin:0 0 8px 20px; color:#374151">
+          <li>返回上一頁重新選擇「寶包」</li>
+          <li>或前往裴妮的專屬頁（之後可補連結）</li>
+        </ul>
+        <button id="back" style="padding:10px 14px; border-radius:10px; border:1px solid #d1d5db; background:#fff;">返回</button>
+      `;
+      document.getElementById("back").addEventListener("click", ()=>history.back());
+    }
+
+    function startFlowise(sessionId){
+      const opener = bot === "baobao"; // 僅寶包才開啟 Flowise
+      if (!opener) return;
+
+      // 將心情作為聊天開場白（給 Chatflow 的 system/first message 可在 server 端追加；前端先傳遞 sessionId）
+      log("Chatbot.init", { chatflowid: CHATFLOW_ID, apiHost: FLOWISE_API, sessionId, mood });
+      // 你可以在 Flowise 端讀 overrideConfig 的自訂欄位；若需，改成 prediction API 方式傳遞
+      Chatbot.init({
+        chatflowid: CHATFLOW_ID,
+        apiHost: FLOWISE_API,
+        chatflowConfig: { sessionId },
+        theme: {
+          chatWindow: {
+            title: `寶包 · 今天的心情 ${mood}`,
+            welcomeMessage: `先記下你今天的心情 ${mood} 。想從哪裡開始聊呢？`
+          }
+        }
+      });
     }
 
     (async () => {
-      const qs = new URLSearchParams(location.search);
-      if (qs.get("debug") === "1") {
-        log("debug=1 → 略過 LIFF，直接載入 Flowise (ESM)");
-        openFlowise("debug_user");
+      // 瀏覽器快速測試（不走 LIFF）
+      if (showLog) {
+        log("debug=1 → 非 LINE 測試");
+        startFlowise("debug_user");
         return;
       }
-
       try {
         log("init LIFF...");
         await liff.init({ liffId: LIFF_ID });
-        if (!liff.isLoggedIn()) {
-          log("not logged in → liff.login()");
-          liff.login(); return;
-        }
+        if (!liff.isLoggedIn()) { log("not logged in → liff.login()"); liff.login(); return; }
         log("getProfile...");
         const profile = await liff.getProfile();
-        log("profile", { displayName: profile.displayName, userId: profile.userId });
-        openFlowise(`line_${profile.userId}`);
+        const sessionId = `line_${profile.userId}`;
+        startFlowise(sessionId);
       } catch (err) {
-        log("LIFF error, fallback to open without sessionId:", err?.message || err);
-        openFlowise();
+        log("LIFF init error → fallback:", err?.message || err);
+        startFlowise();
       }
     })();
   </script>
