@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>LIFF Diagnostics</title>
+  <style>
+    body { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans TC"; margin:0; background:#f8fafc; color:#111827; }
+    .wrap { max-width: 860px; margin: 0 auto; padding: 20px; }
+    h1 { font-size: 20px; margin: 0 0 12px; }
+    pre, code { background:#111827; color:#e5e7eb; padding:12px; border-radius:8px; overflow:auto; }
+    .ok { color:#065f46; font-weight:700; }
+    .bad { color:#991b1b; font-weight:700; }
+    .kv { display:grid; grid-template-columns: 180px 1fr; gap:6px 12px; margin: 12px 0; }
+    .kv div:nth-child(odd){ color:#6b7280; }
+    button { padding:10px 12px; border:1px solid #d1d5db; border-radius:8px; background:#fff; cursor:pointer; }
+    .row { display:flex; gap:8px; flex-wrap:wrap; margin: 8px 0 16px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>LIFF Diagnostics</h1>
+    <div class="kv">
+      <div>UA</div><div id="ua"></div>
+      <div>URL</div><div id="url"></div>
+    </div>
+
+    <div class="row">
+      <button id="btnInit">1) liff.init()</button>
+      <button id="btnLogin">2) liff.login()</button>
+      <button id="btnProfile">3) liff.getProfile()</button>
+    </div>
+
+    <div id="out"></div>
+
+    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+    <script>
+      const OUT = document.getElementById('out');
+      const log = (title, obj, cls) => {
+        const pre = document.createElement('pre');
+        if (cls) pre.className = cls;
+        pre.textContent = (title ? title + "\\n" : "") + (obj ? JSON.stringify(obj, null, 2) : "");
+        OUT.prepend(pre);
+      };
+      document.getElementById('ua').textContent = navigator.userAgent;
+      document.getElementById('url').textContent = location.href;
+
+      // ===== 把這個換成你的 LIFF ID =====
+      const LIFF_ID = "YOUR_LIFF_ID";
+      // =================================
+
+      async function doInit(){
+        try {
+          log("init: start");
+          await liff.init({ liffId: LIFF_ID });
+          log("init: ok", {
+            isInClient: liff.isInClient(),
+            isLoggedIn: liff.isLoggedIn(),
+            language: liff.getLanguage(),
+            version: liff.getVersion(),
+          }, "ok");
+        } catch (e){
+          log("init: error", { message: e?.message || String(e), ...e }, "bad");
+        }
+      }
+
+      async function doLogin(){
+        try {
+          if (!liff.isLoggedIn()){
+            log("login: calling liff.login()");
+            liff.login();
+          } else {
+            log("login: already logged in", {}, "ok");
+          }
+        } catch(e){
+          log("login: error", { message: e?.message || String(e), ...e }, "bad");
+        }
+      }
+
+      async function doProfile(){
+        try {
+          const p = await liff.getProfile();
+          log("profile: ok", p, "ok");
+        } catch(e){
+          log("profile: error", { message: e?.message || String(e), ...e }, "bad");
+        }
+      }
+
+      document.getElementById('btnInit').onclick = doInit;
+      document.getElementById('btnLogin').onclick = doLogin;
+      document.getElementById('btnProfile').onclick = doProfile;
+
+      // 自動跑一次 init 便於觀察
+      doInit();
+    </script>
+  </div>
+</body>
+</html>
