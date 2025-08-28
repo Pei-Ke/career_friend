@@ -125,9 +125,8 @@
       sessionStorage.setItem("bot", bot);
 
       // 直接用相對路徑跳轉（避免 LIFF permanentLink 造成阻礙）
-      const to = `${CHAT_PAGE}?mood=${encodeURIComponent(mood)}&bot=${encodeURIComponent(bot)}`;
-      log("前往：" + to);
-      location.href = to;
+      const to = `${CHAT_PAGE}?mood=${encodeURIComponent(mood)}&bot=${encodeURIComponent(bot)}&debug=1`;
+location.href = to;
     });
   </script>
 </body>
