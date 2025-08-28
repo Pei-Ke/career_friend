@@ -31,7 +31,7 @@
     import Chatbot from "https://cdn.jsdelivr.net/npm/flowise-embed/dist/web.js";
 
     // ======= 需替換你的 LIFF ID；Flowise 參數已可用 =======
-    const LIFF_ID = "2007994605-MQ7wrXWZ"; // ← 換成你的 LIFF ID
+    const LIFF_ID = "YOUR_LIFF_ID"; // ← 換成你的 LIFF ID
     const CHATFLOW_ID = "5e9d71c8-1905-4583-845b-3dfe3b5f4106";
     const FLOWISE_API = "https://cloud.flowiseai.com";
     // =====================================================
@@ -52,13 +52,15 @@
 
     // ---- 讀取與保存「心情、bot」狀態 ----
     function getState(){
-      let mood = qs.get("mood") || localStorage.getItem("mood") || sessionStorage.getItem("mood") || "🙂";
-      let bot  = (qs.get("bot")  || localStorage.getItem("bot")  || sessionStorage.getItem("bot")  || "").toLowerCase();
+      let mood = localStorage.getItem("mood") || sessionStorage.getItem("mood") || "🙂";
+      let bot  = (localStorage.getItem("bot")  || sessionStorage.getItem("bot")  || "").toLowerCase();
       // 持久化一份
-      localStorage.setItem("mood", mood);
-      localStorage.setItem("bot", bot);
-      sessionStorage.setItem("mood", mood);
-      sessionStorage.setItem("bot", bot);
+      try {
+        localStorage.setItem("mood", mood);
+        localStorage.setItem("bot", bot);
+        sessionStorage.setItem("mood", mood);
+        sessionStorage.setItem("bot", bot);
+      } catch (e) {}
       return { mood, bot };
     }
     const state = getState();
@@ -111,7 +113,7 @@
           return;
         }
 
-        // 不自動 login，先以匿名 sessionId 啟動，避免重導把參數洗掉
+        // 不自動 login，先以匿名 sessionId 啟動，避免回跳洗掉狀態
         log("not logged in → use anonymous for now");
         startFlowise(`anon_${Date.now()}`);
 
@@ -119,7 +121,7 @@
         const tip = document.getElementById("loginTip");
         const btn = document.getElementById("loginBtn");
         tip.style.display = "block";
-        btn.onclick = () => liff.login(); // 登入後 LINE 會回到同一頁
+        btn.onclick = () => liff.login(); // 登入後會回到同一頁
       } catch (err) {
         log("LIFF init error → open without sessionId:", err?.message || err);
         startFlowise();

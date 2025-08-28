@@ -120,13 +120,18 @@
     }));
 
     goBtn.addEventListener("click", () => {
-      // 存到 sessionStorage（第二頁同網域可讀）
-      sessionStorage.setItem("mood", mood);
-      sessionStorage.setItem("bot", bot);
+      // 存到 storage（第二頁可讀）
+      try {
+        sessionStorage.setItem("mood", mood);
+        sessionStorage.setItem("bot", bot);
+        localStorage.setItem("mood", mood);
+        localStorage.setItem("bot", bot);
+      } catch (e) {}
 
-      // 直接用相對路徑跳轉（避免 LIFF permanentLink 造成阻礙）
-      const to = `${CHAT_PAGE}?mood=${encodeURIComponent(mood)}&bot=${encodeURIComponent(bot)}&debug=1`;
-location.href = to;
+      // 不帶任何參數（避免某些 WebView 對 emoji/query 的處理問題），直接進聊天頁
+      const to = `${CHAT_PAGE}?from=mood`;
+      log("前往：" + to);
+      location.href = to;
     });
   </script>
 </body>
