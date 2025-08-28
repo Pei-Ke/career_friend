@@ -5,15 +5,22 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>LIFF Chat</title>
   <style>
-    :root { --bg:#f7f7f8; --card:#fff; --border:#e5e7eb; --text:#111827; --muted:#6b7280; }
+    :root { --bg:#f7f7f8; --card:#fff; --border:#e5e7eb; --text:#111827; --muted:#6b7280; --primary:#16a34a; }
     * { box-sizing: border-box; }
     body { margin:0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans TC"; background:var(--bg); color:var(--text); }
-    #notice { max-width:720px; margin: 20px auto; background:var(--card); border:1px solid var(--border); border-radius:16px; padding:16px; display:none; }
-    #log { position: fixed; left:0; right:0; bottom:0; background:#e2e8f0; border-top:1px solid #cbd5e1; font-size:12px; padding:8px 12px; max-height:140px; overflow:auto; display:none; }
+    #notice, #loginTip { max-width:720px; margin: 20px auto; background:var(--card); border:1px solid var(--border); border-radius:16px; padding:16px; display:none; }
+    #log { position: fixed; left:0; right:0; bottom:0; background:#e2e8f0; border-top:1px solid #cbd5e1; font-size:12px; padding:8px 12px; max-height:160px; overflow:auto; display:none; }
+    .btn { appearance:none; border:1px solid var(--border); background:#fff; padding:10px 14px; border-radius:10px; cursor:pointer; }
+    .btn.primary { background:var(--primary); color:#fff; border-color:#10b981; }
   </style>
 </head>
 <body>
   <div id="notice"></div>
+  <div id="loginTip">
+    <div style="font-weight:600; margin-bottom:6px;">為了保存你的對話與偏好，建議登入 LINE</div>
+    <div style="color:#374151; margin-bottom:10px;">先不登入也能聊，稍後隨時可登入以綁定你的紀錄。</div>
+    <button id="loginBtn" class="btn primary">以 LINE 登入</button>
+  </div>
   <div id="log"></div>
 
   <!-- LIFF SDK -->
@@ -24,7 +31,7 @@
     import Chatbot from "https://cdn.jsdelivr.net/npm/flowise-embed/dist/web.js";
 
     // ======= 需替換你的 LIFF ID；Flowise 參數已可用 =======
-    const LIFF_ID = "2007994605-MQ7wrXWZ"; // ← 換成你的 LIFF ID
+    const LIFF_ID = "YOUR_LIFF_ID"; // ← 換成你的 LIFF ID
     const CHATFLOW_ID = "5e9d71c8-1905-4583-845b-3dfe3b5f4106";
     const FLOWISE_API = "https://cloud.flowiseai.com";
     // =====================================================
@@ -43,13 +50,23 @@
     };
     window.onerror = (m, s, l, c) => log("window.onerror:", m, "@", s, l, c);
 
-    // 讀取第一頁傳來的狀態（優先 query，其次 sessionStorage）
-    const mood = qs.get("mood") || sessionStorage.getItem("mood") || "🙂";
-    const bot = (qs.get("bot") || sessionStorage.getItem("bot") || "").toLowerCase();
+    // ---- 讀取與保存「心情、bot」狀態 ----
+    function getState(){
+      let mood = qs.get("mood") || localStorage.getItem("mood") || sessionStorage.getItem("mood") || "🙂";
+      let bot  = (qs.get("bot")  || localStorage.getItem("bot")  || sessionStorage.getItem("bot")  || "").toLowerCase();
+      // 持久化一份
+      localStorage.setItem("mood", mood);
+      localStorage.setItem("bot", bot);
+      sessionStorage.setItem("mood", mood);
+      sessionStorage.setItem("bot", bot);
+      return { mood, bot };
+    }
+    const state = getState();
+    log("state", state);
 
     // 若選擇的不是寶包，先顯示提示
     const $notice = document.getElementById("notice");
-    if (bot && bot !== "baobao") {
+    if (state.bot && state.bot !== "baobao") {
       $notice.style.display = "block";
       $notice.innerHTML = `
         <h3 style="margin:0 0 8px;">你選的是「裴妮」</h3>
@@ -58,51 +75,64 @@
           <li>返回上一頁重新選擇「寶包」</li>
           <li>或前往裴妮的專屬頁（之後可補連結）</li>
         </ul>
-        <button id="back" style="padding:10px 14px; border-radius:10px; border:1px solid #d1d5db; background:#fff;">返回</button>
+        <button id="back" class="btn">返回</button>
       `;
       document.getElementById("back").addEventListener("click", ()=>history.back());
     }
 
     function startFlowise(sessionId){
-      const opener = bot === "baobao"; // 僅寶包才開啟 Flowise
+      const opener = state.bot === "baobao"; // 僅寶包才開啟 Flowise
       if (!opener) return;
 
-      // 將心情作為聊天開場白（給 Chatflow 的 system/first message 可在 server 端追加；前端先傳遞 sessionId）
-      log("Chatbot.init", { chatflowid: CHATFLOW_ID, apiHost: FLOWISE_API, sessionId, mood });
-      // 你可以在 Flowise 端讀 overrideConfig 的自訂欄位；若需，改成 prediction API 方式傳遞
+      log("Chatbot.init", { chatflowid: CHATFLOW_ID, apiHost: FLOWISE_API, sessionId, mood: state.mood });
       Chatbot.init({
         chatflowid: CHATFLOW_ID,
         apiHost: FLOWISE_API,
-        chatflowConfig: { sessionId },
+        chatflowConfig: sessionId ? { sessionId } : {},
         theme: {
           chatWindow: {
-            title: `寶包 · 今天的心情 ${mood}`,
-            welcomeMessage: `先記下你今天的心情 ${mood} 。想從哪裡開始聊呢？`
+            title: `寶包 · 今天的心情 ${state.mood}`,
+            welcomeMessage: `先記下你今天的心情 ${state.mood} 。想從哪裡開始聊呢？`
           }
         }
       });
     }
 
-    (async () => {
-      // 瀏覽器快速測試（不走 LIFF）
-      if (showLog) {
-        log("debug=1 → 非 LINE 測試");
-        startFlowise("debug_user");
-        return;
-      }
+    async function boot(){
       try {
         log("init LIFF...");
         await liff.init({ liffId: LIFF_ID });
-        if (!liff.isLoggedIn()) { log("not logged in → liff.login()"); liff.login(); return; }
-        log("getProfile...");
-        const profile = await liff.getProfile();
-        const sessionId = `line_${profile.userId}`;
-        startFlowise(sessionId);
+
+        if (liff.isLoggedIn()) {
+          log("already logged in");
+          const profile = await liff.getProfile();
+          const sessionId = `line_${profile.userId}`;
+          startFlowise(sessionId);
+          return;
+        }
+
+        // 不自動 login，先以匿名 sessionId 啟動，避免重導把參數洗掉
+        log("not logged in → use anonymous for now");
+        startFlowise(`anon_${Date.now()}`);
+
+        // 顯示「可選登入」按鈕
+        const tip = document.getElementById("loginTip");
+        const btn = document.getElementById("loginBtn");
+        tip.style.display = "block";
+        btn.onclick = () => liff.login(); // 登入後 LINE 會回到同一頁
       } catch (err) {
-        log("LIFF init error → fallback:", err?.message || err);
+        log("LIFF init error → open without sessionId:", err?.message || err);
         startFlowise();
       }
-    })();
+    }
+
+    // 若在非 LINE 環境測試（?debug=1），直接開（匿名）
+    if (showLog) {
+      log("debug=1 → 非 LINE 測試，以匿名 session 啟動");
+      startFlowise("debug_user");
+    } else {
+      boot();
+    }
   </script>
 </body>
 </html>
