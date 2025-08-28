@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>LIFF Chat</title>
+  <title>LIFF Chat (Lite)</title>
   <style>
     :root { --bg:#f7f7f8; --card:#fff; --border:#e5e7eb; --text:#111827; --muted:#6b7280; --primary:#16a34a; }
     * { box-sizing: border-box; }
@@ -23,20 +23,18 @@
   </div>
   <div id="log"></div>
 
-  <!-- LIFF SDK -->
-  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
-
   <!-- Flowise Embed（ES Module 版） -->
   <script type="module">
     import Chatbot from "https://cdn.jsdelivr.net/npm/flowise-embed/dist/web.js";
 
-    // ======= 需替換你的 LIFF ID；Flowise 參數已可用 =======
-    const LIFF_ID = "2007994605-MQ7wrXWZ"; // ← 換成你的 LIFF ID
+    // ======= 可選 LIFF、預設不啟用 =======
+    const LIFF_ID = "2007994605-MQ7wrXWZ"; // 正確的 LIFF ID（僅當 ?liff=1 時會使用）
+    const enableLiff = new URLSearchParams(location.search).get("liff") === "1";
+    // ====================================
+
     const CHATFLOW_ID = "5e9d71c8-1905-4583-845b-3dfe3b5f4106";
     const FLOWISE_API = "https://cloud.flowiseai.com";
-    // =====================================================
 
-    // debug 日誌（網址加 ?debug=1 顯示）
     const qs = new URLSearchParams(location.search);
     const showLog = qs.get("debug") === "1";
     const $log = document.getElementById("log");
@@ -50,11 +48,9 @@
     };
     window.onerror = (m, s, l, c) => log("window.onerror:", m, "@", s, l, c);
 
-    // ---- 讀取與保存「心情、bot」狀態 ----
     function getState(){
       let mood = localStorage.getItem("mood") || sessionStorage.getItem("mood") || "🙂";
       let bot  = (localStorage.getItem("bot")  || sessionStorage.getItem("bot")  || "").toLowerCase();
-      // 持久化一份
       try {
         localStorage.setItem("mood", mood);
         localStorage.setItem("bot", bot);
@@ -66,7 +62,6 @@
     const state = getState();
     log("state", state);
 
-    // 若選擇的不是寶包，先顯示提示
     const $notice = document.getElementById("notice");
     if (state.bot && state.bot !== "baobao") {
       $notice.style.display = "block";
@@ -83,10 +78,9 @@
     }
 
     function startFlowise(sessionId){
-      const opener = state.bot === "baobao"; // 僅寶包才開啟 Flowise
+      const opener = state.bot === "baobao";
       if (!opener) return;
-
-      log("Chatbot.init", { chatflowid: CHATFLOW_ID, apiHost: FLOWISE_API, sessionId, mood: state.mood });
+      log("Chatbot.init", { chatflowid: CHATFLOW_ID, apiHost: FLOWISE_API, sessionId, mood: state.mood, enableLiff });
       Chatbot.init({
         chatflowid: CHATFLOW_ID,
         apiHost: FLOWISE_API,
@@ -101,40 +95,42 @@
     }
 
     async function boot(){
-      try {
-        log("init LIFF...");
-        await liff.init({ liffId: LIFF_ID });
-
-        if (liff.isLoggedIn()) {
-          log("already logged in");
-          const profile = await liff.getProfile();
-          const sessionId = `line_${profile.userId}`;
-          startFlowise(sessionId);
-          return;
-        }
-
-        // 不自動 login，先以匿名 sessionId 啟動，避免回跳洗掉狀態
-        log("not logged in → use anonymous for now");
+      if (!enableLiff){
+        log("LIFF disabled (default). Running anonymous.");
         startFlowise(`anon_${Date.now()}`);
-
-        // 顯示「可選登入」按鈕
-        const tip = document.getElementById("loginTip");
-        const btn = document.getElementById("loginBtn");
-        tip.style.display = "block";
-        btn.onclick = () => liff.login(); // 登入後會回到同一頁
-      } catch (err) {
-        log("LIFF init error → open without sessionId:", err?.message || err);
-        startFlowise();
+        return;
       }
+      // 動態載入 LIFF SDK（只有在 ?liff=1 時）
+      log("loading LIFF SDK...");
+      const s = document.createElement("script");
+      s.src = "https://static.line-scdn.net/liff/edge/2/sdk.js";
+      s.onload = async () => {
+        try {
+          log("init LIFF...");
+          await liff.init({ liffId: LIFF_ID });
+          if (liff.isLoggedIn()) {
+            const profile = await liff.getProfile();
+            startFlowise(`line_${profile.userId}`);
+          } else {
+            startFlowise(`anon_${Date.now()}`);
+            const tip = document.getElementById("loginTip");
+            const btn = document.getElementById("loginBtn");
+            tip.style.display = "block";
+            btn.onclick = () => liff.login();
+          }
+        } catch (err) {
+          log("LIFF init error:", err?.message || err);
+          startFlowise(`anon_${Date.now()}`);
+        }
+      };
+      s.onerror = () => {
+        log("LIFF SDK load error");
+        startFlowise(`anon_${Date.now()}`);
+      };
+      document.head.appendChild(s);
     }
 
-    // 若在非 LINE 環境測試（?debug=1），直接開（匿名）
-    if (showLog) {
-      log("debug=1 → 非 LINE 測試，以匿名 session 啟動");
-      startFlowise("debug_user");
-    } else {
-      boot();
-    }
+    boot();
   </script>
 </body>
 </html>
