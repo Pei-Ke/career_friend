@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>LIFF Endpoint Ping</title>
+  <style>
+    body { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans TC"; margin:0; background:#f0f9ff; color:#111827; }
+    .wrap { max-width: 720px; margin: 0 auto; padding: 24px; }
+    h1 { font-size: 22px; margin: 0 0 10px; }
+    p { margin: 8px 0; }
+    code { background:#111827; color:#e5e7eb; padding: 2px 6px; border-radius: 6px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>LIFF Endpoint Ping</h1>
+    <p>這是一個最小頁面，沒有載入任何 LIFF / 第三方 JS。</p>
+    <p>如果把 <code>Endpoint URL</code> 指到此頁，在 LINE 內用你的 LIFF URL 打開應該不會 400。</p>
+    <p>目前時間：<code id="now"></code></p>
+    <script>
+      document.getElementById('now').textContent = new Date().toISOString();
+    </script>
+  </div>
+</body>
+</html>
