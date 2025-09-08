@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="zh-TW" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>心情紀錄</title>
+    <!-- 引入 Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 引入 Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Poppins:wght@500;600;700&display=swap" rel="stylesheet">
+    <!-- 引入 Remixicon 圖示庫 -->
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@4.2.0/fonts/remixicon.css" rel="stylesheet"/>
+    <!-- 引入自定義 CSS -->
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body class="relative flex items-end justify-center min-h-screen">
+
+    <!-- 背景元素 -->
+    <div class="absolute inset-0 z-0">
+        <div class="cloud cloud-1"></div>
+        <div class="cloud cloud-2"></div>
+        <div class="cloud cloud-3"></div>
+        <button id="theme-toggle" class="absolute top-10 right-10 w-16 h-16 bg-white/80 rounded-full flex items-center justify-center shadow-lg transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-violet-500">
+            <i id="theme-icon" class="ri-moon-clear-fill text-3xl text-violet-500 transition-all duration-500 ease-in-out"></i>
+        </button>
+    </div>
+
+    <!-- 主要內容卡片 -->
+    <main id="main-card" class="bg-white/80 backdrop-blur-xl w-full max-w-md rounded-t-3xl shadow-2xl p-6 sm:p-10 z-10 transition-all duration-500 ease-in-out">
+        <div class="relative">
+            <!-- 步驟一: 選擇心情 -->
+            <section id="mood-section" class="flex flex-col items-center">
+                <div class="flex items-center justify-center gap-2 mb-2">
+                    <i class="ri-sun-line text-xl text-violet-700/80"></i>
+                    <h1 class="text-xl font-semibold text-violet-700/80">每日心情紀錄</h1>
+                </div>
+                <h2 class="text-2xl font-semibold text-slate-800 mb-8 tracking-wide">今天感覺如何？</h2>
+                <div class="space-y-4 w-full">
+                    <div class="grid grid-cols-2 gap-4">
+                        <button class="mood-btn" data-mood="great"><img class="w-12" src="img/great.png" alt="great"><span class="font-medium text-slate-700">很棒</span></button>
+                        <button class="mood-btn" data-mood="good"><img class="w-12" src="img/happy.png" alt="great"><span class="font-medium text-slate-700">不錯</span></button>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <button class="mood-btn" data-mood="okay"><img class="w-12" src="img/not great.png" alt="great"><span class="font-medium text-slate-700">還好</span></button>
+                        <button class="mood-btn" data-mood="not-great"><img class="w-12" src="img/sad.png" alt="great"><span class="font-medium text-slate-700">不太好</span></button>
+                    </div>
+                    <button class="mood-btn w-full" data-mood="bad"><img class="w-12" src="img/bad.png" alt="great"><span class="font-medium text-slate-700">很糟</span></button>
+                </div>
+            </section>
+
+            <!-- 步驟二: 選擇角色 (預設隱藏) -->
+            <section id="role-section" class="absolute inset-0 opacity-0 pointer-events-none flex flex-col items-center">
+                 <div class="flex items-center justify-center gap-2 mb-2">
+                    <i class="ri-question-answer-line text-xl text-violet-700/80"></i>
+                    <h1 class="text-xl font-semibold text-violet-700/80">選擇一位夥伴</h1>
+                </div>
+                <h2 class="text-2xl font-semibold text-slate-800 mb-8 tracking-wide">想跟誰聊聊呢？</h2>
+                <div class="space-y-4 w-full">
+                    <button class="role-card" data-role="calm">
+                        <img class="w-12" src="img/calm.png" alt="calm">
+                        <div class="text-left">
+                            <h3 class="font-bold text-slate-800">冷靜思考 BOT</h3>
+                            <p class="text-sm text-slate-500">提供支持與正面能量的夥伴</p>
+                        </div>
+                    </button>
+                    <button class="role-card" data-role="baby">
+                        <img class="w-12" src="img/baby.png" alt="baby">
+                        <div class="text-left">
+                            <h3 class="font-bold text-slate-800">寶寶 (嗚嗚) bot</h3>
+                            <p class="text-sm text-slate-500">給予陪伴與安慰的三歲寶寶</p>
+                        </div>
+                    </button>
+                    <button id="back-btn" class="mt-4 h-12 flex items-center justify-center gap-2 p-4 rounded-full bg-slate-200/80 hover:bg-slate-300/80 transition-colors w-full">
+                        <i class="ri-arrow-left-line"></i>
+                        <span class="font-medium text-slate-600">返回</span>
+                    </button>
+                </div>
+            </section>
+
+
+        </div>
+    </main>
+
+    <!-- 引入自定義 JavaScript -->
+    <script src="js/script.js"></script>
+</body>
+</html>
